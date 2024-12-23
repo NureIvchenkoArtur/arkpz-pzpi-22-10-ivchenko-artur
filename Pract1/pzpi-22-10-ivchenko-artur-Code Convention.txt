@@ -1,0 +1,353 @@
+﻿МІНІСТЕРСТВО ОСВІТИ І НАУКИ УКРАЇНИ
+ХАРКІВСЬКИЙ НАЦІОНАЛЬНИЙ УНІВЕРСИТЕТ РАДІОЕЛЕКТРОНІКИ
+КАФЕДРА ПРОГРАМНОЇ ІНЖЕНЕРІЇ
+
+
+
+
+
+Звіт
+з практичного заняття №1
+з дисципліни «Аналіз та рефакторинг коду»
+на тему «Правила оформлення програмного коду»
+
+
+
+
+
+
+Виконав: 							      		Перевірив:
+ст. гр. ПЗПІ-22-10 					      	          Сокорчук І. П.
+Івченко А. В.
+
+
+
+
+
+
+
+
+Харків 2024
+ПРАКТИЧНЕ ЗАНЯТТЯ 1
+1.1 Мета роботи
+     Ознайомитися з основними рекомендаціями щодо написання чистого, ефективного та підтримуваного коду для різних мов програмування, а також навчитися аналізувати та рефакторити код для покращення його якості.
+
+1.2 Завдання
+     Обрати мову програмування, дослідити основні рекомендації для написання якісного коду у цій мові, продемонструвати ці рекомендації на прикладах коду, обґрунтувати кожну рекомендацію і надати детальні пояснення. 
+     
+     1.3 Хід роботи
+     Було обрано мову програмування С#. Було розглянуті та ознайомлені основні рекомендації щодо написання чистого коду для мови програмування C#. В презентації (Додаток Б) наведено основні правила і рекомендації щодо оформлення програмного коду C#, а також демонстрація переваг застосування цих рекомендацій.
+     
+     1.4 Висновки
+     Набуто навичок рефакторингу програмного коду, детально розглянуто основні правила оформлення коду.
+     
+     1.5 Відео-презентація
+Посилання: https://youtu.be/0hfhTFNBb3k
+
+
+
+
+
+ДОДАТОК А
+     Приклади програмного коду
+
+namespace CodeConvention
+{
+    public class MyClass
+    {
+        private const string Error = "Error";
+
+        private readonly string _readonlyField = "Readonly Field";
+
+        private static int Count = 0;
+
+        private int _id;
+
+        public string Name = "";
+        public int Age;
+
+        public int Id { get; private set; }
+
+        public MyClass() 
+        {
+            _id = ++Count;
+        }
+
+        public MyClass(string name)
+        {
+            _id = ++Count;
+            Name = name;
+        }
+
+        public int SumAllElements(int[] array)
+        {
+            int sum = 0;
+
+            for(int i = 0; i < array.Length; i++)
+            {
+                sum += array[i];
+            }
+
+            return sum;
+        }
+
+        private void MethodB()
+        {
+            Console.WriteLine("This is a private method.");
+        }
+
+        protected class InnerClass
+        {
+            public void DisplayMessage()
+            {
+                Console.WriteLine("This is a inner class.");
+            }
+        }
+    }
+}
+
+int a = 10; // Що таке "a"? ПОГАНО
+int ageOfTheUserCurrentlyUsingTheApp = 10; // Надлишкова інформація ПОГАНО
+
+
+int userAge = 10;  // ДОБРЕ
+int MinimumAgeForAccess = 18;
+if (userAge >= MinimumAgeForAccess) //ДОБРЕ
+{
+    //...
+}
+if (userAge < 18) //Що означає це число? ПОГАНО
+{
+    //...
+}
+
+string username = "";
+
+var db = new Database();
+
+// Перевіряємо, чи існує користувач з таким ім'ям
+var user = db.Users.SingleOrDefault(u => u.Username == username);
+
+// Використовуємо SingleOrDefault, оскільки очікуємо, що ім'я користувача унікальне
+var user = db.Users.SingleOrDefault(u => u.Username == username);
+
+class Calculator
+{
+    public static int Add(int num1, int num2) 
+    {
+        return num1 + num2;
+    }
+
+    public static double Divide(double numerator, double divisor) { return numerator / divisor; }
+}
+
+public class Database
+{
+    public List<User> Users = new();
+
+    [Fact]
+    public void Divide_WhenDivisorIsZero_ShouldThrowException()
+    {
+        // Arrange
+        double numerator = 10;
+        double divisor = 0;
+
+        // Act & Assert
+        Assert.Throws<DivideByZeroException>(() => Calculator.Divide(numerator, divisor));
+    }
+
+    [Fact]
+    public void Add_ShouldReturnSum()
+    {
+        // Arrange
+        int a = 5;
+        int b = 10;
+
+        // Act
+        int result = Calculator.Add(a, b);
+
+        // Assert
+        Assert.Equal(15, result);
+    }
+}
+
+class Test
+{
+    private string[] _nameList = { "Vova", "Danya", "Artur" };
+    public void PrintNamesStartingWithVowel(IEnumerable<string> nameList)
+    {
+        char[] vowels = { 'A', 'E', 'I', 'O', 'U', 'Y' };
+
+        var filteredNames = nameList
+            .Where(name => !string.IsNullOrEmpty(name) && vowels.Contains(char.ToUpper(name[0])))
+            .ToList();
+
+        foreach (var name in filteredNames)
+        {
+            Console.WriteLine(name);
+        }
+    }
+
+    public void ProcessData(string data)
+    {
+        // TODO: Замінити цей парсер на більш оптимальний алгоритм після релізу v2.0.
+        var result = data.Split(',');
+
+        foreach (var item in result)
+        {
+            Console.WriteLine(item);
+        }
+    }
+
+    public decimal CalculateDiscount(decimal price, int customerLoyaltyYears)
+    {
+        // Базова знижка становить 5%.
+        // Якщо клієнт обслуговується понад 5 років, додається додаткова знижка у 1% за кожен рік, але не більше 10%.
+        decimal baseDiscount = 0.05m;
+        decimal loyaltyBonus = Math.Min(customerLoyaltyYears * 0.01m, 0.10m);
+
+        return price - (price * (baseDiscount + loyaltyBonus));
+    }
+    /// <summary>
+    /// Отримує інформацію про користувача за його ідентифікатором.
+    /// </summary>
+    /// <param name="userId">Унікальний ідентифікатор користувача.</param>
+    /// <returns>
+    /// Об'єкт <see cref="User"/> із даними користувача. 
+    /// Якщо користувача не знайдено, повертає null.
+    /// </returns>
+    /// <exception cref="ArgumentException">
+    /// Викидається, якщо <paramref name="userId"/> не є валідним.
+    /// </exception>
+    public User GetUserById(string userId)
+    {
+        return new User();
+    }
+}
+
+public class User 
+{
+    public string Username;
+}
+
+
+public interface IUserService
+{
+    void AddUser(string username, string email);
+    IEnumerable<string> GetAllUsernames();
+}
+
+// Реалізація сервісу
+public class UserService : IUserService
+{
+    private const int MaxUsernameLength = 20;
+
+    private readonly List<string> _usernames = new();
+
+    public int UserCount => _usernames.Count;
+
+    public void AddUser(string username, string email)
+    {
+        if (string.IsNullOrWhiteSpace(username))
+        {
+            throw new ArgumentException("Username cannot be empty.", nameof(username));
+        }
+
+        if (username.Length > MaxUsernameLength)
+        {
+            throw new ArgumentException($"Username cannot exceed {MaxUsernameLength} characters.", nameof(username));
+        }
+
+        _usernames.Add(username);
+    }
+    //...
+    // Метод для отримання всіх імен користувачів
+    public IEnumerable<string> GetAllUsernames()
+    {
+        return _usernames;
+    }
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+ДОДАТОК Б
+     Слайди презентації
+
+Рисунок 1.1 – Слайд презентації 1
+
+
+Рисунок 1.2 – Слайд презентації 2
+
+Рисунок 1.3 – Слайд презентації 3
+
+
+Рисунок 1.4 – Слайд презентації 4
+
+Рисунок 1.5 – Слайд презентації 5
+
+
+Рисунок 1.6 – Слайд презентації 6
+
+Рисунок 1.7 – Слайд презентації 7
+
+
+Рисунок 1.8 – Слайд презентації 8
+
+Рисунок 1.9 – Слайд презентації 9
+
+
+Рисунок 1.10 – Слайд презентації 10
+
+Рисунок 1.11 – Слайд презентації 11
+
+
+Рисунок 1.12 – Слайд презентації 12
+
+Рисунок 1.13 – Слайд презентації 13
+
+
+Рисунок 1.14 – Слайд презентації 14
+
+Рисунок 1.15 – Слайд презентації 15
+
+
+Рисунок 1.16 – Слайд презентації 16
+
+Рисунок 1.17 – Слайд презентації 17
