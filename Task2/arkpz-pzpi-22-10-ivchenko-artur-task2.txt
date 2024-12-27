@@ -1,0 +1,210 @@
+﻿МІНІСТЕРСТВО ОСВІТИ І НАУКИ УКРАЇНИ
+ХАРКІВСЬКИЙ НАЦІОНАЛЬНИЙ УНІВЕРСИТЕТ РАДІОЕЛЕКТРОНІКИ
+
+
+
+ЗВІТ
+з лабораторної роботи №2
+з дисципліни «Аналіз та рефакторинг коду»
+на тему: «РОЗРОБКА БАЗИ ДАНИХ ДЛЯ СЕРВЕРНОЇ ЧАСТИНИ ПРОГРАМНОЇ СИСТЕМИ ТА ПРИКЛАДНОГО ПРОГРАМНОГО ІНТЕРФЕЙСУ (API)»
+
+
+
+Виконав:                                                                                      Перевірив:
+ст. гр. Івченко А. В.                                                                    Дашенков Д. С.
+
+
+
+
+
+
+Харків 2024
+ЛАБОРАТОРНА РОБОТА 2
+     2.1 Мета роботи
+     Розробити базу даних для серверної частини  програмної системи та прикладного програмного інтерфейсу. 
+     2.2 Хід роботи
+     ASP.NET Core було обрано як основну платформу для розробки серверної частини проєкту. Основні переваги ASP.NET Core:
+• Кросплатформність: можливість розгортання на Windows, Linux та macOS.
+• Висока продуктивність: оптимізований для роботи з великою кількістю одночасних запитів.
+• Модульність: використання Middleware для налаштування та розширення функціоналу.
+• Підтримка сучасних стандартів: інтеграція з RESTful API, WebSockets та gRPC.
+     Використання PostgreSQL
+     PostgreSQL було обрано як основну систему керування базами даних (СКБД) через її переваги:
+• Масштабованість: підтримка роботи з великими обсягами даних.
+• JSONB: можливість зберігання напівструктурованих даних у форматі JSON із високою продуктивністю.
+• Розширення: підтримка геопросторових даних через PostGIS, що може бути корисним для геолокаційного функціоналу.
+• Надійність: транзакційна реплікація та захист від втрати даних.
+     
+     Використання Entity Framework Core
+     Entity Framework Core використовується як ORM (Object-Relational Mapping) для взаємодії з базою даних. Основні переваги:
+• Автоматизація: зменшує обсяг коду для роботи з базою даних.
+• Міграції: підтримка автоматичного оновлення схеми бази даних.
+• Легкість інтеграції: спрощує взаємодію з PostgreSQL та дозволяє працювати через LINQ-запити.
+     Спочатку потрібно розробити Use Case діаграму, щоб розуміти як актори взаємодіють з системою.
+     Загальні принципи API
+• Формат даних: JSON.
+• Аутентифікація: JWT (JSON Web Token).
+• RESTful підхід:
+o Статус-коди HTTP для передачі інформації про результат запиту.
+o CRUD-операції для ресурсів.
+
+
+Рис. 2.1 – Use Case Diagram
+
+Рис. 2.2 – ER діаграма
+     
+
+Рис 2.4 – Специфікація API Lap
+
+Рис 2.5 – Специфікація API Race
+
+
+Рис 2.6 – Специфікація API Sensor
+
+Рис 2.7 – Специфікація API Track
+
+Рис 2.8 – Специфікація API User
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+ДОДАТОК А
+Фрагмент програмного коду взаємодії серверної частини з БД:
+public class SensorRepository : ISensorRepository
+{
+    private readonly TelemetryDbContext _context;
+
+    public SensorRepository(TelemetryDbContext context)
+    {
+        _context = context;
+    }
+    public async Task<IEnumerable<Sensor>> GetAllAsync()
+    {
+        return await _context.Sensors.ToListAsync();
+    }
+
+    public async Task<Sensor> GetByIdAsync(int id)
+    {
+        return await _context.Sensors
+            .Include(s => s.Laps)
+            .Include(s => s.Track)
+            .Include(s => s.User)
+            .FirstOrDefaultAsync(s => s.Id == id);
+    }
+
+    public async Task CreateAsync(Sensor sensor)
+    {
+        await _context.Sensors.AddAsync(sensor);
+        await _context.SaveChangesAsync();
+    }
+
+    public async Task UpdateAsync(Sensor sensor)
+    {
+        _context.Sensors.Update(sensor);
+        await _context.SaveChangesAsync();
+    }
+
+    public async Task UpdateRangeAsync(IEnumerable<Sensor> sensors)
+    {
+        _context.Sensors.UpdateRange(sensors);
+        await _context.SaveChangesAsync();
+    }
+
+    public async Task DeleteAsync(int id)
+    {
+        var sensor = await GetByIdAsync(id);
+        if (sensor != null)
+        {
+            _context.Sensors.Remove(sensor);
+            await _context.SaveChangesAsync();
+        }
+    }
+}
+
+
+
+
+
+
+
+ДОДАТОК Б
+     Фрагмент програмного коду взаємодії серверної частини з клієнтами:
+[ApiController]
+[Route("api/v1/[controller]")]
+public class SensorController : ControllerBase
+{
+    private readonly ISensorService _sensorService;
+
+    public SensorController(ISensorService sensorService)
+    {
+        _sensorService = sensorService;
+    }
+
+    [HttpPut("{id}/register")]
+    public async Task<IActionResult> RegisterUserForSensor(int id, RegisterSensorDTO registerSensorDto)
+    {
+        if (!ModelState.IsValid)
+            return BadRequest(ModelState);
+
+        try
+        {
+            var sensor = await _sensorService.RegisterUserForSensorAsync(id, registerSensorDto.UserId);
+            return Ok(sensor);
+        }
+        catch (Exception ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+    }
+
+    [HttpGet]
+    public async Task<IActionResult> GetAll()
+    {
+        var sensors = await _sensorService.GetAllSensorsAsync();
+        return Ok(sensors);
+    }
+
+    [HttpGet("{id}")]
+    public async Task<IActionResult> GetById(int id)
+    {
+        var sensor = await _sensorService.GetSensorByIdAsync(id);
+        if (sensor == null)
+            return NotFound();
+
+        return Ok(sensor);
+    }
+
+    [HttpPost]
+    public async Task<IActionResult> Create(CreateSensorDTO createSensorDto)
+    {
+        var sensor = await _sensorService.CreateSensorAsync(createSensorDto);
+        if (sensor == null)
+            return NotFound();
+        return CreatedAtAction(nameof(GetById), new { id = sensor.Id }, sensor);
+    }
+
+    [HttpPut("{id}")]
+    public async Task<IActionResult> Update(int id, UpdateSensorDTO updateSensorDto)
+    {
+        var sensor = await _sensorService.UpdateSensorAsync(id, updateSensorDto);
+        return CreatedAtAction(nameof(GetById), new { id = sensor.Id }, sensor);
+    }
+
+    [HttpDelete("{id}")]
+    public async Task<IActionResult> Delete(int id)
+    {
+        await _sensorService.DeleteSensorAsync(id);
+        return NoContent();
+    }
+}
+

@@ -1,0 +1,70 @@
+﻿МІНІСТЕРСТВО ОСВІТИ І НАУКИ УКРАЇНИ
+ХАРКІВСЬКИЙ НАЦІОНАЛЬНИЙ УНІВЕРСИТЕТ РАДІОЕЛЕКТРОНІКИ
+
+
+
+ЗВІТ
+з лабораторної роботи №5
+з дисципліни «Аналіз та рефакторинг коду»
+на тему: «Розгортання програмної системи та демонстрація її роботи»
+
+
+
+
+Виконав:                                                                                      Перевірив:
+ст. гр. Івченко А. В.                                                                    Дашенков Д. С.
+
+
+
+
+
+
+
+Харків 2024
+ЛАБОРАТОРНА РОБОТА 5
+     5.1 Мета роботи
+     Розгорнути програмну систему, перевірити її функціональність та налаштувати для безперебійної роботи. Забезпечити коректне взаємодія з іншими компонентами та продемонструвати стабільність роботи розгорнутої системи в реальних умовах.
+     5.2 Хід роботи
+     Для швидкого розгортання та демонстрування ми підняли сервер із допомогою NGROK.
+     Під час виконання лабораторної роботи я налаштував свій проект в Docker.
+     Було виконано наступні кроки:
+• Контейнеризація додатку: Створено Dockerfile для бекенду. 
+• Налаштування Docker Compose: Створено docker-compose.yml для одночасного запуску бекенду і PostgreSQL.
+• Створення бази даних у контейнері: Налаштовано PostgreSQL у Docker-контейнері з автоматичним створенням бази даних під час запуску.
+• Тестування роботи додатку: Виконано тестовий запуск додатку з використанням Docker Compose. Перевірено коректність роботи API та взаємодії з базою даних.
+
+
+
+
+
+
+
+ДОДАТОК А
+	Конфігурація Docker Compose.
+FROM mcr.microsoft.com/dotnet/aspnet:7.0 AS base 
+WORKDIR /app 
+EXPOSE 80 
+EXPOSE 443 
+
+FROM mcr.microsoft.com/dotnet/sdk:7.0 AS build 
+WORKDIR /src 
+COPY ["arkpz-pzpi-22-10-ivchenko-artur-task2.csproj", "./"] 
+RUN dotnet restore "./ arkpz-pzpi-22-10-ivchenko-artur-task2.csproj.csproj" 
+COPY . . RUN dotnet publish "./YourProject.csproj" -c Release -o /app/publish 
+
+FROM base AS final 
+WORKDIR /app 
+COPY --from=build /app/publish . 
+ENTRYPOINT ["dotnet", " arkpz-pzpi-22-10-ivchenko-artur-task2.dll"]
+
+services: 
+     db: 
+     image: postgres:15 
+     container_name: postgres_db 
+     ports: 
+     - "5432:5432" 
+     environment: 
+     POSTGRES_USER: postgres 
+     POSTGRES_PASSWORD: 67384 
+     POSTGRES_DB: postgres
+     

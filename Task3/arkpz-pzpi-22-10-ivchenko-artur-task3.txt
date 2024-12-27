@@ -1,0 +1,120 @@
+﻿МІНІСТЕРСТВО ОСВІТИ І НАУКИ УКРАЇНИ
+ХАРКІВСЬКИЙ НАЦІОНАЛЬНИЙ УНІВЕРСИТЕТ РАДІОЕЛЕКТРОНІКИ
+
+
+
+ЗВІТ
+з лабораторної роботи №3
+з дисципліни «Аналіз та рефакторинг коду»
+на тему: «Розробка бізнес-логіки та функцій адміністрування серверної частини програмної системи»
+
+
+
+
+Виконав:                                                                                      Перевірив:
+ст. гр. Івченко А. В.                                                                    Дашенков Д. С.
+
+
+
+
+
+
+Харків 2024
+ЛАБОРАТОРНА РОБОТА 3
+3.1 Мета роботи
+     Розробити бізнес-логику та функції адміністрування серверної частини  програмної системи.
+3.2 Хід роботи
+Було розроблено бізнес-логіку.
+	MF1: Збір даних у реальному часі з датчиків. 
+     MF2: Збереження даних у базі даних 
+MF3: Обробка результатів для кожного кола. 
+MF4: Формування та звітування даних на основі запросу (останній заїзд, список кращих гонщиків і т. д).
+
+
+
+
+
+
+
+
+
+
+
+
+
+ДОДАТОК А
+Фрагменти коду для формування звіту гонки. 
+public class RaceService : IRaceService
+{
+    private readonly IRaceRepository _raceRepository;
+    private readonly IUserRepository _userRepository;
+    private readonly ISensorRepository _sensorRepository;
+    private readonly IMapper _mapper;
+
+    public RaceService(IRaceRepository raceRepository, IUserRepository userRepository, ISensorRepository sensorRepository,  IMapper mapper)
+    {
+        _raceRepository = raceRepository;
+        _userRepository = userRepository;
+        _sensorRepository = sensorRepository;
+        _mapper = mapper;
+    }
+
+    public async Task<RaceReportDTO> GenerateReportAsync(int id)
+    {
+        var race = await _raceRepository.GetRaceWithDetailsAsync(id);
+        if (race == null)
+            throw new Exception("Гонка не знайдена.");
+
+        var raceReport = new RaceReportDTO
+        {
+            RaceId = race.Id,
+            RaceDate = race.StartTime,
+            TrackName = race.Track.Name,
+            LapCount = race.LapCount,
+            TotalRaceTime = race.EndTime.HasValue && race.StartTime.HasValue
+                ? (decimal)(race.EndTime.Value - race.StartTime.Value).TotalSeconds
+                : null
+        };
+
+        var sensorReports = race.Laps
+            .GroupBy(l => l.Sensor)
+            .Select(g => new SensorReportDTO
+            {
+                SensorName = g.Key.Name,
+                CompletedLaps = g.Count(),
+                BestLapTime = g.Min(l => l.LapTime)
+            })
+            .OrderBy(r => r.BestLapTime) 
+            .ToList();
+
+        raceReport.Sensors = sensorReports;
+
+        return raceReport;
+    }
+}
+
+[ApiController]
+[Route("api/v1/[controller]")]
+public class RaceController : ControllerBase
+{
+    private readonly IRaceService _raceService;
+
+    public RaceController(IRaceService raceService)
+    {
+        _raceService = raceService;
+    }
+
+    [HttpGet("{id}/GetReport")]
+    public async Task<IActionResult> GetReport(int id)
+    {
+        try
+        {
+            var report = await _raceService.GenerateReportAsync(id);
+            return Ok(report);
+        }
+        catch (Exception ex)
+        {
+            return BadRequest(ex.Message);
+        }
+    }
+}
