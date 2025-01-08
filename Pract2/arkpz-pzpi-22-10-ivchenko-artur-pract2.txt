@@ -1,0 +1,280 @@
+﻿МІНІСТЕРСТВО ОСВІТИ І НАУКИ УКРАЇНИ
+ХАРКІВСЬКИЙ НАЦІОНАЛЬНИЙ УНІВЕРСИТЕТ РАДІОЕЛЕКТРОНІКИ
+КАФЕДРА ПРОГРАМНОЇ ІНЖЕНЕРІЇ
+
+
+
+
+
+Звіт
+з практичного заняття №2
+з дисципліни «Аналіз та рефакторинг коду»
+на тему «Методи рефакторингу коду програмного забезпечення»
+
+
+
+
+
+
+Виконав: 							      		Перевірив:
+ст. гр. ПЗПІ-22-10 					      	          Сокорчук І. П.
+Івченко А. В.
+
+
+
+
+
+
+
+
+Харків 2024
+ПРАКТИЧНЕ ЗАНЯТТЯ 2
+2.1  Мета роботи
+     Навчитися основним методам рефакторингу коду на основі реальних прикладів з їхніх власних програмних проєктів. 
+     
+2.2 Завдання
+     Обрати три методи рефакторингу коду із книги Мартіна Фаулера «Refactoring. Improving the Design of Existing Code». Навести приклади свого особистого коду. 
+     Кожен метод рефакторингу повинен супроводжуватись: 
+• Описом проблеми, яку вирішує даний метод. 
+• Кодом до і після застосування методу рефакторингу. 
+• Поясненням переваг використаного методу.
+
+     2.3 Хід роботи
+     Було обрано та розглянуто три методи рефакторингу коду: Replace Nested Conditional with Guard Clauses, Replace Method with Method Object, Self Encapsulate Field.
+     
+     2.4 Висновки
+     Набуто навичок рефакторингу програмного коду із допомогою різних методів, детально розглянуто три метода рефакторингу коду.
+     
+     2.5 Відео-презентація
+Посилання: https://youtu.be/LgrtBZHC7SA
+
+
+
+
+
+ДОДАТОК А
+     Приклади програмного коду:
+	
+	До рефакторингу:
+
+public class Order
+{
+    public List<Item> Items { get; set; }
+    public bool IsValid { get; set; }
+    public bool HasItems { get; set; }
+
+    //Refactoring Method 1
+    public void ProcessOrder(Order order)
+    {
+        if (order != null)
+        {
+            if (order.IsValid)
+            {
+                if (order.HasItems)
+                {
+                    Process(order);
+                }
+                else
+                {
+                    Console.WriteLine("Order has no items.");
+                }
+            }
+            else
+            {
+                Console.WriteLine("Order is invalid.");
+            }
+        }
+        else
+        {
+            Console.WriteLine("Order is null.");
+        }
+    }
+
+    public void Process(Order order)
+    {
+        Console.WriteLine("Processing...");
+    }
+
+    //Refactoring Method 2
+    public double CalculateOrderTotal(Order order, double discount, double taxRate)
+    {
+        double subtotal = 0;
+        foreach (var item in order.Items)
+        {
+            subtotal += item.Price * item.Quantity;
+        }
+
+        double discountAmount = subtotal * discount;
+        double taxAmount = (subtotal - discountAmount) * taxRate;
+        return subtotal - discountAmount + taxAmount;
+    }
+}
+
+//Refactoring Method 3
+public class Employee
+{
+    public string Name;
+    public double Salary;
+}
+}
+
+
+     Після рефакторингу:
+
+public class Order
+{
+    public List<Item> Items { get; set; }
+    public bool IsValid { get; set; }
+    public bool HasItems { get; set; }
+
+    //Refactoring Method 1
+    public void ProcessOrder(Order order)
+    {
+        if (order == null)
+        {
+            Console.WriteLine("Order is null.");
+            return;
+        }
+
+        if (!order.IsValid)
+        {
+            Console.WriteLine("Order is invalid.");
+            return;
+        }
+
+        if (!order.HasItems)
+        {
+            Console.WriteLine("Order has no items.");
+            return;
+        }
+
+        Process(order);
+    }
+
+    public void Process(Order order)
+    {
+        Console.WriteLine("Processing...");
+    }
+
+}
+
+//Refactoring Method 2
+public class OrderTotalCalculator
+{
+    private readonly Order _order;
+    private readonly double _discount;
+    private readonly double _taxRate;
+
+    public OrderTotalCalculator(Order order, double discount, double taxRate)
+    {
+        _order = order;
+        _discount = discount;
+        _taxRate = taxRate;
+    }
+
+    public double CalculateTotal()
+    {
+        double subtotal = CalculateSubtotal();
+        double discountAmount = subtotal * _discount;
+        double taxAmount = (subtotal - discountAmount) * _taxRate;
+        return subtotal - discountAmount + taxAmount;
+    }
+
+    private double CalculateSubtotal()
+    {
+        double subtotal = 0;
+        foreach (var item in _order.Items)
+        {
+            subtotal += item.Price * item.Quantity;
+        }
+        return subtotal;
+    }
+}
+
+//Refactoring Method 3
+public class Employee
+{
+    private string _name;
+    private double _salary;
+
+    public string Name
+    {
+        get => _name;
+        set => _name = value;
+    }
+
+    public double Salary
+    {
+        get => _salary;
+        set
+        {
+            if (value < 0)
+            {
+                throw new ArgumentException("Salary cannot be negative.");
+            }
+            _salary = value;
+        }
+    }
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+ДОДАТОК Б
+     Слайди презентації
+
+Рисунок 2.1 – Слайд презентації 1
+
+
+Рисунок 2.2 – Слайд презентації 2
+
+Рисунок 2.3 – Слайд презентації 3
+
+
+Рисунок 2.4 – Слайд презентації 4
+
+Рисунок 2.5 – Слайд презентації 5
+
+
+Рисунок 2.6 – Слайд презентації 6
+
+Рисунок 2.7 – Слайд презентації 7
+
+
+Рисунок 2.8 – Слайд презентації 8
+
+Рисунок 2.9 – Слайд презентації 9
+
+
+Рисунок 2.10 – Слайд презентації 10
+
+Рисунок 2.11 – Слайд презентації 11
+
+
+Рисунок 2.12 – Слайд презентації 12
+
+Рисунок 2.13 – Слайд презентації 13
+
+
+Рисунок 2.14 – Слайд презентації 14
+
+Рисунок 2.15 – Слайд презентації 15
+
+
+Рисунок 2.16 – Слайд презентації 16
+
+Рисунок 2.17 – Слайд презентації 17
+
+
+Рисунок 2.18 – Слайд презентації 18
+
