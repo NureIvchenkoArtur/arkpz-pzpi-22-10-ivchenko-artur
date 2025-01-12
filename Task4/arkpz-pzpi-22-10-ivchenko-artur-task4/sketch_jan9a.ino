@@ -1,17 +1,21 @@
-#include <ESP8266WiFi.h> 
+#include <WiFi.h> 
 #include <ArduinoJson.h> 
 #include <TinyGPS++.h>   
+#include <HTTPClient.h>
 
 #define RX_PIN 3  // RX ESP8266
 #define TX_PIN 1  // TX ESP8266
 
+WiFiClient client;
+String serverUrl = "https://rnlru-178-165-121-234.a.free.pinggy.link/api/v1/Lap";
+
 // Налаштування Wi-Fi
-const char* ssid = "Space Cowboy";      
-const char* password = "bambaleila";  
+const char* ssid = "Wokwi-GUEST";      
+const char* password = "";  
 
 // Параметри гонки та датчика (заглушки)
-int raceId = 1;
-int sensorId = 42;
+int raceId = 4;
+int sensorId = 8;
 
 // Лінія старт-фінішу (заглушки)
 double startFinishLat1 = 50.4501; 
@@ -21,7 +25,7 @@ double startFinishLon2 = 30.5238;
 
 // Поточний стан
 int lapNumber = 0;
-unsigned long lapStartTime = 0; 
+float lapStartTime = 0; 
 float speed = 0.0;              
 
 // Точки гальмування та прискорення
@@ -33,8 +37,6 @@ Point brakingPoints[1000];
 Point accelerationPoints[1000];
 int brakingCount = 0;
 int accelerationCount = 0;
-
-WiFiClient client;
 
 TinyGPSPlus gps; 
 HardwareSerial gpsSerial(1);
@@ -53,8 +55,9 @@ bool isCrossingStartFinish(float lat, float lon) {
 }
 
 // Відправка даних на сервер
-void sendDataToServer(unsigned long lapTime) {
-    // Формуємо JSON
+void sendDataToServer(float lapTime) {
+    HTTPClient http;
+
     DynamicJsonDocument doc(1024);
     doc["raceId"] = raceId;
     doc["sensorId"] = sensorId;
@@ -75,30 +78,25 @@ void sendDataToServer(unsigned long lapTime) {
         point["longitude"] = accelerationPoints[i].longitude;
     }
 
-    // Серіалізація JSON
     String jsonData;
     serializeJson(doc, jsonData);
 
-    // Відправка через HTTP
-    if (client.connect("localhost", 5000)) { 
-        client.println("POST /api/v1/Lap HTTP/1.1");
-        client.println("Host: localhost");
-        client.println("Content-Type: application/json");
-        client.print("Content-Length: ");
-        client.println(jsonData.length());
-        client.println(); 
-        client.println(jsonData); 
+    http.begin(serverUrl);
+    http.addHeader("Content-Type", "application/json");
 
-        while (client.available()) {
-            String response = client.readString();
-            Serial.println("Відповідь сервера: " + response);
-        }
-        client.stop();
-        Serial.println("Succed");
+    int httpResponseCode = http.POST(jsonData);
+
+    if (httpResponseCode > 0) {
+        Serial.print("HTTP Response code: ");
+        Serial.println(httpResponseCode);
+        String response = http.getString();
+        Serial.println("Server response: " + response);
+    } else {
+        Serial.print("Error code: ");
+        Serial.println(httpResponseCode);
     }
-    else {
-        Serial.println("Error HTTP");
-    }
+
+    http.end(); 
 }
 
 void setup() {
@@ -137,15 +135,14 @@ void loop() {
                 lapStartTime = millis();
             }
             else {
-                unsigned long lapTime = millis() - lapStartTime;
+                float lapTime = millis() - lapStartTime;
                 lapStartTime = millis();
-
+                
                 sendDataToServer(lapTime);
-
-                lapNumber++;
-                brakingCount = 0;
-                accelerationCount = 0;
             }
+            lapNumber++;
+            brakingCount = 0;
+            accelerationCount = 0;
         }
     }
     delay(100);
